@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Druid Override Controller
+  m_Controller: {fileID: 9100000, guid: 3eb8f5dd9dbe84af1900bf9bfd1f5258, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: e8caf474e3a194dab910209b03041f61, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 28c4438bf06954a97aec86eea92d3613, type: 2}
+  - m_OriginalClip: {fileID: 7400000, guid: bf78e03dc830a4347b84a82e26ac8c81, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: faf063bf5372f439e9b8009dc8dc2d53, type: 2}
+  - m_OriginalClip: {fileID: 7400000, guid: e26cc7b242eda4089b51db49c70a5e7e, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 82cfe4d5beea9497fb05baaca6538573, type: 2}
+  - m_OriginalClip: {fileID: 7400000, guid: 690e7315404dd428091e6be78a47db7e, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 90737a75cd67c4f8d901c6a981e605a8, type: 2}
+  - m_OriginalClip: {fileID: 7400000, guid: 86ef44165ba16411e98dc520c047189a, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 07ca240ffa25744488c1f3d8da610757, type: 2}
