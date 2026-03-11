@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace JFramework
+namespace TDRoom
 {
     public interface IGameObjectPool
     {

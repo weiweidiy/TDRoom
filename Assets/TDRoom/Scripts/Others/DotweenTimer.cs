@@ -1,8 +1,9 @@
 ﻿//using Sirenix.OdinInspector;
 
 using DG.Tweening;
+using JFramework;
 
-namespace JFramework
+namespace TDRoom
 {
     public class DotweenTimer : ITimer
     {

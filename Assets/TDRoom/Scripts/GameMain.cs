@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Net.Sockets;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -17,35 +19,60 @@ namespace Game
 
         [SerializeField] bool isClient = false;
 
+        ProcessNetwork network;
         private void Awake()
         {
             m_NetworkManager = GetComponent<NetworkManager>();
 
             var obj = Instantiate(spawner.gameObject);
 
+            network= new ProcessNetwork();
+
         }
 
         private void Start()
         {
-            var ip = GlobalBoard.Ip;
-            var port = GlobalBoard.Port;
-            if (!isClient)
-            {
-                ip = "0.0.0.0";
-                port = 7777;
-            }
-            //else
-            //{
-            //    ip = "127.0.0.1";
-            //    port = 7777;
-            //}
+            var args = GetEnviromentArgs();
+            var ip = isClient ? GlobalBoard.Ip : "0.0.0.0";
+            var port = isClient ? GlobalBoard.Port : args.port;        
+            var maxPlayers = isClient? 1 : args.maxPlayers;
+
             Debug.Log($"GameMain Start. isClient:{isClient}, ip:{ip}, port:{port}");
             m_NetworkManager.GetComponent<UnityTransport>().SetConnectionData(ip, port);
 
             if (isClient)
                 m_NetworkManager.StartClient();
+            else
+            {
+                m_NetworkManager.StartServer();
+                //服务器启动了，通知主服务器
+                if(network.ConnectToMainProcess(9999))
+                {
+                    Debug.Log("Connected to main process successfully.");
+                }
+            }
+                
         }
 
+
+        (string roomId, ushort port, int maxPlayers) GetEnviromentArgs()
+        {
+            var args = Environment.GetCommandLineArgs();
+            string roomId = null;
+            ushort port = 7777;
+            int maxPlayers = 2;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "-roomId" && i + 1 < args.Length)
+                    roomId = args[i + 1];
+                else if (args[i] == "-port" && i + 1 < args.Length)
+                    port = ushort.Parse(args[i + 1]);
+                else if (args[i] == "-maxPlayers" && i + 1 < args.Length)
+                    maxPlayers = int.Parse(args[i + 1]);
+            }
+            return (roomId, port, maxPlayers);
+        }
         //private void SceneManager_OnLoadEventCompleted(string sceneName, UnityEngine.SceneManagement.LoadSceneMode loadSceneMode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut)
         //{
         //    SpawnPrefab();

@@ -5,7 +5,7 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/TDRoom/Scenes/SampleScene.unity
-    guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/TDRoom/Scenes/RoomScene.unity
+    guid: dda423ffceb535a46bb1a9e0860044cd
   m_configObjects: {}

@@ -67,7 +67,7 @@ public class GameManager : NetworkBehaviour, IFinder
         // ConnectedClientsIds 包含所有已连接客户端的ID（包括Host自己）
         int connectedCount = NetworkManager.Singleton.ConnectedClientsIds.Count;
 
-        Debug.Log($"当前连接数: {connectedCount}");
+        Debug.Log($"curConnect: {connectedCount}");
 
         if (connectedCount >= requiredPlayers)
         {
@@ -81,7 +81,7 @@ public class GameManager : NetworkBehaviour, IFinder
     private void StartGame()
     {
         gameStarted = true;
-        Debug.Log($"服务器: 已满足 {requiredPlayers} 名玩家，开始游戏！");
+        Debug.Log($"Server: start game {requiredPlayers} 名玩家，开始游戏！");
 
         // 在这里执行游戏开始逻辑
         // 例如：
@@ -99,6 +99,25 @@ public class GameManager : NetworkBehaviour, IFinder
         NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
     }
 
+    (string roomId, ushort port, int maxPlayers) GetEnviromentArgs()
+    {
+        var args = Environment.GetCommandLineArgs();
+        string roomId = null;
+        ushort port = 7777;
+        int maxPlayers = 2;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "-roomId" && i + 1 < args.Length)
+                roomId = args[i + 1];
+            else if (args[i] == "-port" && i + 1 < args.Length)
+                port = ushort.Parse(args[i + 1]);
+            else if (args[i] == "-maxPlayers" && i + 1 < args.Length)
+                maxPlayers = int.Parse(args[i + 1]);
+        }
+        return (roomId, port, maxPlayers);
+    }
+
     #region 相应事件
     /// <summary>
     /// GameManager对象被创建完成了
@@ -108,7 +127,7 @@ public class GameManager : NetworkBehaviour, IFinder
         
         if (IsClient)
         {
-            Debug.Log("客户端设置事件监听spell");
+            Debug.Log("client gameManager: OnNetworkSpawn");
             EventManager.AddListener<UIBottomSpellController.EventSpell>(OnUISpellClick);
         }
 
@@ -143,11 +162,13 @@ public class GameManager : NetworkBehaviour, IFinder
             //创建地图
             var mapObject = mapManager.Spawn(0);
 
-            Debug.Log("服务器: 开始监听客户端连接...");
+            Debug.Log("Server gameManager: OnNetworkSpawn...");
             // 订阅客户端连接事件
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
 
             // 检查是否已经满足条件（例如Host启动时已有1个连接）
+            var args = GetEnviromentArgs();
+            requiredPlayers = args.maxPlayers;
             CheckPlayerCount();
         }
     }
@@ -173,7 +194,7 @@ public class GameManager : NetworkBehaviour, IFinder
 
         OnInitDataRPC(clientId);
 
-        Debug.Log($"服务器: 客户端 {clientId} 已连接");
+        Debug.Log($"server: 客户端 {clientId} 已连接");
         CheckPlayerCount();
     }
 

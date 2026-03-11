@@ -8,11 +8,11 @@
       "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
     },
     "com.hiplay.jframework": {
-      "version": "https://github.com/weiweidiy/com.hiplay.jframwork.git",
+      "version": "https://github.com/weiweidiy/com.hiplay.jframework.git",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "12032acfffc6068bade39eb44c6edbf0ac50bf3a"
+      "hash": "5bde056a47a349c6ff2d24a14195ca6d85a2ca21"
     },
     "com.unity.2d.animation": {
       "version": "9.2.0",

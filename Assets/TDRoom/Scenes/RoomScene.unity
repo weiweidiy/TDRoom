@@ -541,7 +541,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawner: {fileID: 6508958522094120011, guid: 12cadb0cd80856d46a45c9b126c4517d, type: 3}
-  isClient: 1
+  isClient: 0
 --- !u!114 &2101447187
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace JFramework
+namespace TDRoom
 {
     public enum SceneMode
     {

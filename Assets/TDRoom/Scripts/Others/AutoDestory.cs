@@ -1,6 +1,7 @@
 using JFramework;
 using System.Collections;
 using System.Collections.Generic;
+using TDRoom;
 using UnityEngine;
 
 public class AutoDestory : MonoBehaviour
