@@ -7,6 +7,7 @@ using UnityEngine;
 
 namespace Game
 {
+
     /// <summary>
     /// Add this component to the same GameObject as
     /// the NetworkManager component.
@@ -26,7 +27,7 @@ namespace Game
 
             var obj = Instantiate(spawner.gameObject);
 
-            network= new ProcessNetwork();
+            network = new ProcessNetwork();
 
         }
 
@@ -34,33 +35,42 @@ namespace Game
         {
             var args = GetEnviromentArgs();
             var ip = isClient ? GlobalBoard.Ip : "0.0.0.0";
-            var port = isClient ? GlobalBoard.Port : args.port;        
-            var maxPlayers = isClient? 1 : args.maxPlayers;
+            var port = isClient ? GlobalBoard.Port : args.port;
+            var maxPlayers = isClient ? 1 : args.maxPlayers;
+            var roomId = isClient ? "" : args.roomId;
+            var playerIds = args.playerIds;
 
             Debug.Log($"GameMain Start. isClient:{isClient}, ip:{ip}, port:{port}");
             m_NetworkManager.GetComponent<UnityTransport>().SetConnectionData(ip, port);
 
+            //#if !TDROOM_SERVER
             if (isClient)
                 m_NetworkManager.StartClient();
+            //#else
             else
             {
                 m_NetworkManager.StartServer();
+                network.RoomId = roomId;
+                Debug.Log($"GameMain Start Server. roomId:{roomId}, maxPlayers:{maxPlayers}");
+                network.Port = port;
                 //服务器启动了，通知主服务器
-                if(network.ConnectToMainProcess(9999))
+                if (network.ConnectToMainProcess(9999))
                 {
                     Debug.Log("Connected to main process successfully.");
                 }
             }
-                
+            //#endif
+
         }
 
 
-        (string roomId, ushort port, int maxPlayers) GetEnviromentArgs()
+        (string roomId, ushort port, int maxPlayers, int[] playerIds) GetEnviromentArgs()
         {
             var args = Environment.GetCommandLineArgs();
             string roomId = null;
             ushort port = 7777;
             int maxPlayers = 2;
+            int[] playerIds = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -70,8 +80,19 @@ namespace Game
                     port = ushort.Parse(args[i + 1]);
                 else if (args[i] == "-maxPlayers" && i + 1 < args.Length)
                     maxPlayers = int.Parse(args[i + 1]);
+                else if (args[i] == "-playerIds")
+                {
+                    // 解析玩家ID列表
+                    var ids = args[i + 1].Split(',');
+                    foreach(var id in ids)
+                    {
+                        Debug.Log($"playerId: {id}");
+                    }
+                    playerIds = Array.ConvertAll(ids, int.Parse);
+                }
+
             }
-            return (roomId, port, maxPlayers);
+            return (roomId, port, maxPlayers, playerIds);
         }
         //private void SceneManager_OnLoadEventCompleted(string sceneName, UnityEngine.SceneManagement.LoadSceneMode loadSceneMode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut)
         //{
