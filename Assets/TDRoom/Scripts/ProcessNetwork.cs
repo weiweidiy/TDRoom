@@ -10,6 +10,9 @@ namespace Game
     {
         ReqRoomReady = 1,
         ResRoomReady = 2,
+        ReqPlayerData = 3,
+        ResPlayerData = 4,
+        // 其他协议类型...
     }
 
     public class ReqRoomReady : JNetMessage
@@ -25,6 +28,21 @@ namespace Game
         public override int TypeId { get => (int)TDRoomProtocolType.ResRoomReady; }
 
         public int Code;
+    }
+
+    public class ReqPlayerData : JNetMessage
+    {
+        public override string Uid { get; set; } = Guid.NewGuid().ToString();
+        public override int TypeId { get => (int)TDRoomProtocolType.ReqPlayerData; }
+        public int PlayerId { get; set; }
+    }
+
+    public class ResPlayerData : JNetMessage
+    {
+        public override string Uid { get; set; } = Guid.NewGuid().ToString();
+        public override int TypeId { get => (int)TDRoomProtocolType.ResPlayerData; }
+        public int PlayerId { get; set; }
+        public string PlayerName { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -49,19 +67,17 @@ namespace Game
                 client = new TcpClient("127.0.0.1", communicationPort);
                 stream = client.GetStream();
                 writer = new StreamWriter(stream) { AutoFlush = true };
+                reader = new StreamReader(stream);
 
                 Console.WriteLine("connected");
 
-                var data = new ReqRoomReady()
-                {
-                    RoomId = RoomId,
-                    //Port = Port
-                };
-                string json = JsonConvert.SerializeObject(data);
-                SendMessage(json);
 
+                //string json = JsonConvert.SerializeObject(data);
+                
                 // 连接成功后，启动消息接收
-                //System.Threading.Tasks.Task.Run(() => ReceiveMessages());
+                System.Threading.Tasks.Task.Run(() => ReceiveMessages());
+
+
 
                 return true;
             }
@@ -73,8 +89,9 @@ namespace Game
             }
         }
 
-        public void SendMessage(string message)
+        public void SendMessage(object data)
         {
+            string message = JsonConvert.SerializeObject(data);
             try
             {
                 if (client?.Connected == true && writer != null)
@@ -105,7 +122,9 @@ namespace Game
 
                         // 你可以在这里反序列化并处理消息
                         // 例如:
-                        // var msg = JsonConvert.DeserializeObject<ResRoomReady>(line);
+                        var msg = JsonConvert.DeserializeObject<JNetMessage>(line);
+                        var msgTypeId = msg.TypeId;
+                        CreateMessageObject(msgTypeId, line);
                     }
                 }
             }
@@ -116,5 +135,24 @@ namespace Game
             }
         }
 
+
+        void CreateMessageObject(int typeId, string message)
+        {
+            switch(typeId)
+            {
+                case (int)TDRoomProtocolType.ResRoomReady:
+                    var res = JsonConvert.DeserializeObject<ResRoomReady>(message);
+                    Console.WriteLine($"处理 ResRoomReady 消息，Code: {res.Code}");
+                    UnityEngine.Debug.Log($"handle ResRoomReady message, Code: {res.Code}");
+                    break;
+                case (int)TDRoomProtocolType.ResPlayerData:
+                    var playerData = JsonConvert.DeserializeObject<ResPlayerData>(message);
+                    Console.WriteLine($"处理 ResPlayerData 消息，PlayerId: {playerData.PlayerId}, PlayerName: {playerData.PlayerName}");
+                    UnityEngine.Debug.Log($"handle ResPlayerData message, PlayerId: {playerData.PlayerId}, PlayerName: {playerData.PlayerName}");
+                    break;
+                default:
+                    throw new Exception($"未知的消息类型: {typeId}");
+            }
+        }
     }
 }

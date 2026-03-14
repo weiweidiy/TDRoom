@@ -1,6 +1,8 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -31,7 +33,7 @@ namespace Game
 
         }
 
-        private void Start()
+        private async void Start()
         {
             var args = GetEnviromentArgs();
             var ip = isClient ? GlobalBoard.Ip : "0.0.0.0";
@@ -57,6 +59,13 @@ namespace Game
                 if (network.ConnectToMainProcess(9999))
                 {
                     Debug.Log("Connected to main process successfully.");
+                    await UniTask.Delay(1000); // 等待一段时间，确保连接稳定
+                    var data = new ReqRoomReady()
+                    {
+                        RoomId = roomId,
+                        //Port = Port
+                    };
+                    network.SendMessage(data);
                 }
             }
             //#endif
