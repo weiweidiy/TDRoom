@@ -1,7 +1,10 @@
 using Cysharp.Threading.Tasks;
+using JFramework;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -9,6 +12,45 @@ using UnityEngine;
 
 namespace Game
 {
+    public class RoomNetMessageTypeRegister : ITypeRegister
+    {
+        public Dictionary<int, Type> GetTypes()
+        {
+            var result = new Dictionary<int, Type>();
+
+            result.Add((int)TDRoomProtocolType.ReqRoomReady, typeof(ReqRoomReady));
+            result.Add((int)TDRoomProtocolType.ResRoomReady, typeof(ResRoomReady));
+            result.Add((int)TDRoomProtocolType.ReqPlayerData, typeof(ReqPlayerData));
+            result.Add((int)TDRoomProtocolType.ResPlayerData, typeof(ResPlayerData));
+            return result;
+        }
+    }
+
+    public class RoomMessageHandler : INetworkMessageHandler
+    {
+        public void Handle(IJNetMessage message)
+        {
+            switch(message.TypeId)
+            {
+
+                case (int)TDRoomProtocolType.ResRoomReady:
+                    var res = message as ResRoomReady;
+                    Debug.Assert(res != null, "message should be of type ResRoomReady");
+                    Debug.Log($"Received ResRoomReady. Code:{res.Code}");
+                    // 处理房间准备就绪响应的逻辑
+                    break;
+
+                case (int)TDRoomProtocolType.ResPlayerData:
+                    var resPlayerData = message as ResPlayerData;
+                    Debug.Log($"Received ResPlayerData. PlayerId:{resPlayerData.PlayerId}, PlayerName:{resPlayerData.PlayerName}");
+                    // 处理玩家数据响应的逻辑
+                    break;
+                default:
+                    Debug.LogWarning($"Unknown message type: {message.TypeId}");
+                    break;
+            }
+        }
+    }
 
     /// <summary>
     /// Add this component to the same GameObject as
@@ -22,14 +64,20 @@ namespace Game
 
         [SerializeField] bool isClient = false;
 
-        ProcessNetwork network;
+        //ProcessNetwork network;
+        IJNetwork network;
         private void Awake()
         {
             m_NetworkManager = GetComponent<NetworkManager>();
 
             var obj = Instantiate(spawner.gameObject);
 
-            network = new ProcessNetwork();
+            //network = new ProcessNetwork();
+            var builder = new JNetworkBuilder()
+                .SetProtocolRegister(new RoomNetMessageTypeRegister())
+                .SetMessageHandler(new RoomMessageHandler());
+            network =  builder.Build();
+            
 
         }
 
@@ -52,21 +100,25 @@ namespace Game
             else
             {
                 m_NetworkManager.StartServer();
-                network.RoomId = roomId;
+                //network.RoomId = roomId;
                 Debug.Log($"GameMain Start Server. roomId:{roomId}, maxPlayers:{maxPlayers}");
-                network.Port = port;
+                //network.Port = port;
                 //服务器启动了，通知主服务器
-                if (network.ConnectToMainProcess(9999))
+
+                await network.Connect("127.0.0.1:9999");
+
+                Debug.Log("Connected to main process successfully.");
+                await UniTask.Delay(1000); // 等待一段时间，确保连接稳定
+                var data = new ReqRoomReady()
                 {
-                    Debug.Log("Connected to main process successfully.");
-                    await UniTask.Delay(1000); // 等待一段时间，确保连接稳定
-                    var data = new ReqRoomReady()
-                    {
-                        RoomId = roomId,
-                        //Port = Port
-                    };
-                    network.SendMessage(data);
-                }
+                    RoomId = roomId,
+                    //Port = Port
+                };
+                var res = await network.SendMessage<ResRoomReady>(data);
+
+                Debug.Assert(res != null, "res should not be null");
+
+                Debug.Log("SendMessage roomready successfully." + res.Code);
             }
             //#endif
 

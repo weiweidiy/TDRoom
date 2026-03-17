@@ -45,6 +45,8 @@ namespace Game
         public string PlayerName { get; set; } = string.Empty;
     }
 
+
+
     /// <summary>
     /// 进程通信工具类，负责与主进程进行通信
     /// </summary>
