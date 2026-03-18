@@ -2,6 +2,7 @@ using Game;
 using JFramework;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -56,6 +57,8 @@ public class GameManager : NetworkBehaviour, IFinder
     [SerializeField] GameObject bullet_1003Prefab;
     /*[SerializeField] */GameObject petPrefab;
 
+    int connectCount;
+
     /// <summary>
     /// 检查当前连接的玩家数量是否满足开始游戏的条件
     /// </summary>
@@ -65,11 +68,11 @@ public class GameManager : NetworkBehaviour, IFinder
 
         // 获取当前连接的客户端数量
         // ConnectedClientsIds 包含所有已连接客户端的ID（包括Host自己）
-        int connectedCount = NetworkManager.Singleton.ConnectedClientsIds.Count;
+        //int connectedCount = NetworkManager.Singleton.ConnectedClientsIds.Count;
 
-        Debug.Log($"curConnect: {connectedCount}");
+        Debug.Log($"curConnect: {connectCount}");
 
-        if (connectedCount >= requiredPlayers)
+        if (connectCount >= requiredPlayers)
         {
             StartGame();
         }
@@ -82,6 +85,8 @@ public class GameManager : NetworkBehaviour, IFinder
     {
         gameStarted = true;
         Debug.Log($"Server: start game {requiredPlayers} 名玩家，开始游戏！");
+
+
 
         // 在这里执行游戏开始逻辑
         // 例如：
@@ -99,12 +104,13 @@ public class GameManager : NetworkBehaviour, IFinder
         NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
     }
 
-    (string roomId, ushort port, int maxPlayers) GetEnviromentArgs()
+    (string roomId, ushort port, int maxPlayers, string[] playerIds) GetEnviromentArgs()
     {
         var args = Environment.GetCommandLineArgs();
         string roomId = null;
         ushort port = 7777;
         int maxPlayers = 2;
+        string[] playerIds = null;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -114,8 +120,19 @@ public class GameManager : NetworkBehaviour, IFinder
                 port = ushort.Parse(args[i + 1]);
             else if (args[i] == "-maxPlayers" && i + 1 < args.Length)
                 maxPlayers = int.Parse(args[i + 1]);
+            else if (args[i] == "-playerIds")
+            {
+                // 解析玩家ID列表
+                playerIds = args[i + 1].Split(',');
+                foreach (var id in playerIds)
+                {
+                    Debug.Log($"playerId: {id}");
+                }
+                //playerIds = Array.ConvertAll(ids, int.Parse);
+            }
+
         }
-        return (roomId, port, maxPlayers);
+        return (roomId, port, maxPlayers, playerIds);
     }
 
     #region 相应事件
@@ -179,9 +196,21 @@ public class GameManager : NetworkBehaviour, IFinder
     /// 有客户端连接了
     /// </summary>
     /// <param name="clientId"></param>
-    private void OnClientConnected(ulong clientId)
+    private async void OnClientConnected(ulong clientId)
     {
         if (!IsServer || gameStarted) return;
+
+        var args = GetEnviromentArgs();
+        //Debug.Log($"Client connected: {clientId}, roomId: {args.roomId}, port: {args.port}, maxPlayers: {args.maxPlayers}");
+        var networkManager = NetworkManager.Singleton;
+        var gameMain = networkManager.GetComponent<GameMain>();
+        var playerId = gameMain.GetPlayerId(clientId);
+
+        var res = await gameMain.SendMessage<ResPlayerData>(new ReqPlayerData()
+        {
+            PlayerId = playerId
+        });
+        Debug.Log($"Received player data response: PlayerId={res.PlayerId}, PlayerName={res.PlayerName} " + DateTime.Now);
 
         //初始化battleLine
         battleLineManager.InitBattleLineWithClient(clientId);
@@ -194,7 +223,9 @@ public class GameManager : NetworkBehaviour, IFinder
 
         OnInitDataRPC(clientId);
 
-        Debug.Log($"server: 客户端 {clientId} 已连接");
+        Debug.Log($"server: client {clientId} connected"  +DateTime.Now);
+
+        connectCount++;
         CheckPlayerCount();
     }
 

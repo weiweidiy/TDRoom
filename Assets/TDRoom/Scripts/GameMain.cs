@@ -3,6 +3,7 @@ using JFramework;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,7 +43,7 @@ namespace Game
 
                 case (int)TDRoomProtocolType.ResPlayerData:
                     var resPlayerData = message as ResPlayerData;
-                    Debug.Log($"Received ResPlayerData. PlayerId:{resPlayerData.PlayerId}, PlayerName:{resPlayerData.PlayerName}");
+                    Debug.Log($"Received from server PlayerId:{resPlayerData.PlayerId}, PlayerName:{resPlayerData.PlayerName}");
                     // 处理玩家数据响应的逻辑
                     break;
                 default:
@@ -63,6 +64,8 @@ namespace Game
         [SerializeField] DynamicSpawnManager spawner;
 
         [SerializeField] bool isClient = false;
+
+        Dictionary<ulong, string> clientIdToPlayerId = new Dictionary<ulong, string>();
 
         //ProcessNetwork network;
         IJNetwork network;
@@ -89,16 +92,23 @@ namespace Game
             var maxPlayers = isClient ? 1 : args.maxPlayers;
             var roomId = isClient ? "" : args.roomId;
             var playerIds = args.playerIds;
+            var playerId = GlobalBoard.PlayerUid;
 
             Debug.Log($"GameMain Start. isClient:{isClient}, ip:{ip}, port:{port}");
             m_NetworkManager.GetComponent<UnityTransport>().SetConnectionData(ip, port);
 
             //#if !TDROOM_SERVER
             if (isClient)
+            {
+                m_NetworkManager.NetworkConfig.ConnectionData = System.Text.Encoding.UTF8.GetBytes(playerId.ToString());
+                //m_NetworkManager.StartHost();
                 m_NetworkManager.StartClient();
+            }
+               
             //#else
             else
             {
+                m_NetworkManager.ConnectionApprovalCallback += ApprovalCheck;
                 m_NetworkManager.StartServer();
                 //network.RoomId = roomId;
                 Debug.Log($"GameMain Start Server. roomId:{roomId}, maxPlayers:{maxPlayers}");
@@ -124,14 +134,74 @@ namespace Game
 
         }
 
+        private void OnDestroy()
+        {
+            m_NetworkManager.ConnectionApprovalCallback -= ApprovalCheck;
+        }
 
-        (string roomId, ushort port, int maxPlayers, int[] playerIds) GetEnviromentArgs()
+        private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+        {
+            var args = GetEnviromentArgs();
+            var playerIds = args.playerIds;
+
+            Debug.Log("ApprovalCheck :" + request.ClientNetworkId);
+            // 将客户端传来的字节数据解析为字符串（假设发送的是 userId）
+            string userId = System.Text.Encoding.UTF8.GetString(request.Payload);
+            Debug.Log($"Client {request.ClientNetworkId}  userId: {userId}");
+
+            // 验证逻辑：例如检查数据库或与合法用户列表比对
+            bool isApproved = ValidateUser(userId, playerIds);
+
+            // 可以自定义返回给客户端的消息（可选）
+            // 使用 Create() 创建自定义消息（需要定义 NetworkObject 等），此处简化
+            //response(true, null, isApproved, null, null);
+
+            // 设置响应
+            response.Approved = isApproved;
+            response.CreatePlayerObject = false; // 或者 true 如果需要自动生成玩家对象
+                                                 // response.PlayerPrefabHash = 如果 CreatePlayerObject 为 true，需要指定 prefab hash
+            response.Reason = isApproved ? "Welcome" : "Invalid user"; // 拒绝时可提供原因
+            response.Pending = false; // 同步完成
+
+            if(isApproved)
+            {
+                clientIdToPlayerId.Add(request.ClientNetworkId, userId);
+            }
+            
+
+            // 如果 isValid 为 false，客户端会被断开
+        }
+
+        private bool ValidateUser(string userId, string[] playersId)
+        {
+            // 实现具体验证，例如查询用户表
+            return playersId.Contains(userId);
+        }
+
+        public string GetPlayerId(ulong clientId)
+        {
+            if (clientIdToPlayerId.TryGetValue(clientId, out string playerId))
+            {
+                return playerId;
+            }
+            
+            throw new Exception($"ClientId {clientId} not found in clientIdToPlayerId mapping.");
+        }
+
+        public async Task<TResponse> SendMessage<TResponse>(IJNetMessage pMsg, TimeSpan? timeout = null) where TResponse : class, IJNetMessage
+        {
+            var res = await network.SendMessage<TResponse>(pMsg);
+            return res;
+        }
+
+
+        (string roomId, ushort port, int maxPlayers, string[] playerIds) GetEnviromentArgs()
         {
             var args = Environment.GetCommandLineArgs();
             string roomId = null;
             ushort port = 7777;
             int maxPlayers = 2;
-            int[] playerIds = null;
+            string[] playerIds = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -144,12 +214,12 @@ namespace Game
                 else if (args[i] == "-playerIds")
                 {
                     // 解析玩家ID列表
-                    var ids = args[i + 1].Split(',');
-                    foreach(var id in ids)
+                    playerIds = args[i + 1].Split(',');
+                    foreach(var id in playerIds)
                     {
-                        Debug.Log($"playerId: {id}");
+                        //Debug.Log($"playerId: {id}");
                     }
-                    playerIds = Array.ConvertAll(ids, int.Parse);
+                    //playerIds = Array.ConvertAll(ids, int.Parse);
                 }
 
             }

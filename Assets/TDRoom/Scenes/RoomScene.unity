@@ -541,7 +541,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawner: {fileID: 6508958522094120011, guid: 12cadb0cd80856d46a45c9b126c4517d, type: 3}
-  isClient: 0
+  isClient: 1
 --- !u!114 &2101447187
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -590,7 +590,7 @@ MonoBehaviour:
       - {fileID: 11400000, guid: 9a6c420a223e3f8479a8d8f2bda700bf, type: 2}
     TickRate: 30
     ClientConnectionBufferTimeout: 10
-    ConnectionApproval: 0
+    ConnectionApproval: 1
     ConnectionData: 
     EnableTimeResync: 0
     TimeResyncInterval: 30

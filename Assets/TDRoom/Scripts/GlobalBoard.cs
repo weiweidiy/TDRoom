@@ -6,4 +6,5 @@ public class GlobalBoard
 {
     public static string Ip;
     public static ushort Port;
+    public static string PlayerUid;
 }
